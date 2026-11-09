@@ -1,0 +1,34 @@
+name: Update RFC mirror
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-rfc-mirror
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Sync from RFC Editor
+        run: ./update.sh
+      - name: Commit and push changes
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f -A -- mirror/
+          if ! git diff --cached --quiet; then
+            git commit -m "Update RFC mirror"
+            git push origin "HEAD:refs/heads/$DEFAULT_BRANCH"
+          fi
